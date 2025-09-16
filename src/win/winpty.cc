@@ -131,6 +131,18 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
   Napi::Env env(info.Env());
   Napi::HandleScope scope(env);
 
+  // Declare all variables at the top to avoid C2362 errors with goto/exception handling
+  int cols;
+  int rows;
+  bool debug;
+  winpty_error_ptr_t error_ptr;
+  winpty_config_t* winpty_config;
+  winpty_t *pc;
+  winpty_spawn_config_t* config;
+  HANDLE handle;
+  BOOL spawnSuccess;
+  Napi::Object marshal;
+
   if (info.Length() != 7 ||
       !info[0].IsString() ||
       !info[1].IsString() ||
@@ -174,16 +186,17 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
     throw Napi::Error::New(env, why);
   }
 
-  int cols = info[4].As<Napi::Number>().Int32Value();
-  int rows = info[5].As<Napi::Number>().Int32Value();
-  bool debug = info[6].As<Napi::Boolean>().Value();
+  // Initialize variables after potential early exits
+  cols = info[4].As<Napi::Number>().Int32Value();
+  rows = info[5].As<Napi::Number>().Int32Value();
+  debug = info[6].As<Napi::Boolean>().Value();
 
   // Enable/disable debugging
   SetEnvironmentVariable(WINPTY_DBG_VARIABLE, debug ? "1" : NULL); // NULL = deletes variable
 
   // Create winpty config
-  winpty_error_ptr_t error_ptr = nullptr;
-  winpty_config_t* winpty_config = winpty_config_new(0, &error_ptr);
+  error_ptr = nullptr;
+  winpty_config = winpty_config_new(0, &error_ptr);
   if (winpty_config == nullptr) {
     throw error_with_winpty_msg("Error creating WinPTY config", error_ptr, env);
   }
@@ -193,7 +206,7 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
   winpty_config_set_initial_size(winpty_config, cols, rows);
 
   // Start the pty agent
-  winpty_t *pc = winpty_open(winpty_config, &error_ptr);
+  pc = winpty_open(winpty_config, &error_ptr);
   winpty_config_free(winpty_config);
   if (pc == nullptr) {
     throw error_with_winpty_msg("Error launching WinPTY agent", error_ptr, env);
@@ -201,7 +214,7 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
   winpty_error_free(error_ptr);
 
   // Create winpty spawn config
-  winpty_spawn_config_t* config = winpty_spawn_config_new(WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN, shellpath.c_str(), cmdline.c_str(), cwd.c_str(), envStr.c_str(), &error_ptr);
+  config = winpty_spawn_config_new(WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN, shellpath.c_str(), cmdline.c_str(), cwd.c_str(), envStr.c_str(), &error_ptr);
   if (config == nullptr) {
     winpty_free(pc);
     throw error_with_winpty_msg("Error creating WinPTY spawn config", error_ptr, env);
@@ -209,8 +222,8 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
   winpty_error_free(error_ptr);
 
   // Spawn the new process
-  HANDLE handle = nullptr;
-  BOOL spawnSuccess = winpty_spawn(pc, config, &handle, nullptr, nullptr, &error_ptr);
+  handle = nullptr;
+  spawnSuccess = winpty_spawn(pc, config, &handle, nullptr, nullptr, &error_ptr);
   winpty_spawn_config_free(config);
   if (!spawnSuccess) {
     if (handle) {
@@ -251,7 +264,7 @@ static Napi::Value PtyStartProcess(const Napi::CallbackInfo& info) {
   ptyHandles.push_back(pc);
 
   DWORD pid = GetProcessId(winpty_agent_process(pc));
-  Napi::Object marshal = Napi::Object::New(env);
+  marshal = Napi::Object::New(env);
   marshal.Set("innerPid", Napi::Number::New(env, (int)innerPid));
   marshal.Set("pid", Napi::Number::New(env, (int)pid));
   marshal.Set("pty", Napi::Number::New(env, InterlockedIncrement(&ptyCounter)));
