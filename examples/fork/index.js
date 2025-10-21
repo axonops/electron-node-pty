@@ -1,17 +1,16 @@
-import * as os from 'node:os';
-import * as pty from '../../lib/index.js';
+var os = require('os');
+var pty = require('../..');
 
-const isWindows = os.platform() === 'win32';
-const shell = isWindows ? 'powershell.exe' : 'bash';
+var isWindows = os.platform() === 'win32';
+var shell = isWindows ? 'powershell.exe' : 'bash';
 
-const ptyProcess = pty.spawn(shell, [], {
+var ptyProcess = pty.spawn(shell, [], {
   name: 'xterm-256color',
   cols: 80,
   rows: 26,
   cwd: isWindows ? process.env.USERPROFILE : process.env.HOME,
   env: Object.assign({ TEST: "Environment vars work" }, process.env),
-  useConpty: true,
-  useConptyDll: true
+  useConpty: true
 });
 
 ptyProcess.onData(data => process.stdout.write(data));

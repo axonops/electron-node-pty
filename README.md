@@ -18,12 +18,12 @@ The full API for node-pty is contained within the [TypeScript declaration file](
 ## Example Usage
 
 ```js
-import * as os from 'node:os';
-import * as pty from 'node-pty';
+var os = require('os');
+var pty = require('node-pty');
 
-const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
+var shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 
-const ptyProcess = pty.spawn(shell, [], {
+var ptyProcess = pty.spawn(shell, [], {
   name: 'xterm-color',
   cols: 80,
   rows: 30,
@@ -104,7 +104,6 @@ npm install --global --production windows-build-tools
 The following are also needed:
 
 - [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk) - only the "Desktop C++ Apps" components are needed to be installed
-- Spectre-mitigated libraries - In order to avoid the build error "MSB8040: Spectre-mitigated libraries are required for this project", open the Visual Studio Installer, press the Modify button, navigate to the "Individual components" tab, search "Spectre", and install an option like "MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (Latest)" (the exact option to install will depend on your version of Visual Studio as well as your operating system architecture)
 
 ## Debugging
 
@@ -155,7 +154,7 @@ This error can occur due to anti-virus software intercepting winpty from creatin
 
 ## pty.js
 
-This project is forked from [chjj/pty.js](https://github.com/chjj/pty.js) with the primary goals being to provide better support for later Node.js versions and Windows.
+This project is forked from [chjj/pty.js](https://github.com/chjj/pty.js) with the primary goals being to provide better support for later Node.JS versions and Windows.
 
 ## License
 
